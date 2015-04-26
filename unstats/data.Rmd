@@ -1,0 +1,77 @@
+### 1. Background 
+
+The United Nations Statistics Division collects from all the National Statistical Offices several population censuses’ datasets. The data are collected via the Demographic Yearbook census questionnaires. You may access the website [here](http://unstats.un.org/unsd/demographic/products/dyb/dybcensusdata.htm)
+
+This shiny application visualizes certain parts of this census data. Assets, data and code can be accessed [here](https://github.com/sgatzeme/Dev_Dat_Prod)
+
+### 2. Dataset
+
+The dataset contains basic population characteristics over a period of 66 years (1948 - 2014). The relevant characteristic in this dataset is population by country, sex and urban/rural residence.
+
+The dataset has a total of 11,689 records of 205 countries. As the free access to this data is restricted, and census data is not available for all countries in each year, there are certainly limitations in the quality of the data. However, this dataset should be adequate to showcase the app. 
+
+ID | Variables | Description
+--- | --- | ---
+01 | Country | List of 205 countries of the world
+02 | Year | Date range from 1948 to 2014
+03 | Sex | Information about the gender, divided into "male" and "female"
+04 | Area | Information about the residence, divided into "rural" and "urban"
+05 | Population_Count | Population count in million
+
+### 3. Preprocessing
+
+In order to use the app, we have to preprocess the data. Thus, we have set up our basic parameters and thereafter, read in and transformed the input data.
+
+Loading the necessary libraries as well as set the basic option parameters:
+
+1. Load the ggplot2 and reshape Package
+2. Turn off scientific number format
+3. Strings shall not be converted to factors
+4. Digits are set to 1
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(ggplot2)
+library(reshape)
+
+options(scipen=999)
+options(stringsAsFactors = FALSE)
+options(digits=1)
+```
+
+Reading in one or multiple input .csv files from the data directory. Keep track of the correct encoding and thereafter merge the list of dataframes into one final dataframe
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+dataDir <- file.path(getwd(), "data")
+files <- list.files(dataDir, pattern = "^.*\\.csv", full.names = T, recursive = F)
+data.1 <- lapply(files, function(x) read.csv(x, header = TRUE, sep = ",", encoding="UTF-8"))
+data.1 <- reshape::merge_all(data.1)
+```
+
+Since some columns do not have a clear name, we renamed them. We also removed footnote information from the dataset and removed duplicates. The dataset was sorted in an ascending order according to the country and sex variable. For visualization purposes, we divided the population count by a million. Finally, for the app, we deduced several individual vectors for the relevant variables. 
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+colnames(data.1)[1] <- "Country"
+colnames(data.1)[5] <- "Population_Count"
+data.1 <- unique(data.1[,-6])
+data.1 <- data.1[order(data.1$Country, data.1$Sex),]
+data.1$Population_Count <- data.1$Population_Count/1000000
+country <- unique(data.1$Country)
+sex <- unique(data.1$Sex)
+area <- unique(data.1$Area)
+year <- as.integer(unique(data.1$Year)) 
+```
+
+### 4. App Flow
+
+There are three relevant files for the app execution in the app directory:
+
+1. server.R: The backend logic to the app
+2. ui.R: the frontend to the app
+3. runApp.R: execution statement
+
+The app flow is as follows:
+
+0. Source data.R: This file contains the above mentioned preprocessing steps and is responsible for the dataset
+1. Select a country: You may select one or multiple countries in order to see the output plot of the population count
+2. determine date range: Select your admired date range
+3. select sex and area: Check the variable attributes as you like and see the output plot getting updated
+
+Remark: The colour code for the area plots contains two dimensions. On the one hand, we have a color code, on the other hand there is an alpha transparency. Thus, if you would like to select only male population data from urban and rural areas, you have to stick to the green colored areas and for women vice versa.
